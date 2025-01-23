@@ -1,58 +1,64 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Reflection.Metadata.Ecma335;
+using UserManagementApi.Models;
 
-[Route("[controller]")]
-[ApiController]
-public class UserController : ControllerBase {
-    private static List<User> users = new List<User>();
+namespace UserManagementApi.Controllers {
 
-    [HttpGet]
-    public ActionResult<List<User>> GetAll() => users;
+    [Route("[controller]")]
+    [ApiController]
+    public class UserController : ControllerBase {
+        private static readonly List<User> users = [
+            new() { Id = 1, Name = "TestName1"},
+            new() { Id = 2, Name = "TestName2"}
+        ];
 
-    [HttpGet("{id}")]
-    public ActionResult<User> GetById(int id) {
-        try {
-            var user = users.FirstOrDefault(i => i.Id == id) ?? throw new KeyNotFoundException("This user does not exist.");
-            return user;
-        } catch (KeyNotFoundException ex) {
-            return BadRequest(ex.Message);
+        [HttpGet]
+        public IActionResult GetUsers() {
+            return Ok(users);
         }
-    }
 
-    [HttpPost]
-    public ActionResult<User> Create(User newUser) {
-        try {
-            if (!ModelState.IsValid) throw new BadHttpRequestException("Data format is invalid."); 
+        [HttpGet("{id}")]
+        public IActionResult GetUser(int id) {
+            var user = users.FirstOrDefault(u => u.Id == id);
+            if (user == null) {
+                return NotFound();
+            }
+            return Ok(user);
+        }
+
+        [HttpPost]
+        public IActionResult CreateUser(User newUser) {
+            if (!ModelState.IsValid) {
+                return BadRequest(ModelState);
+            }
             newUser.Id = users.Count + 1;
             users.Add(newUser);
-            return CreatedAtAction(nameof(GetById), new { id = newUser.Id }, newUser);
-        } catch (BadHttpRequestException ex) {
-            return BadRequest(ex.Message);
-        }
-    }
+            return CreatedAtAction(nameof(GetUser), new { id = newUser.Id }, newUser);
 
-    [HttpPut("{id}")]
-    public ActionResult Update(int id, User updatedUser) {
-        try {
-            if (!ModelState.IsValid) throw new BadHttpRequestException("Data format is invalid.");
-            var user = users.FirstOrDefault(i => i.Id == id) ?? throw new KeyNotFoundException();
+        }
+
+        [HttpPut("{id}")]
+        public ActionResult UpdateUser(int id, User updatedUser) {
+            if (!ModelState.IsValid) {
+                return BadRequest(ModelState);
+            }
+            var user = users.FirstOrDefault(i => i.Id == id);
+            if (user == null) {
+                return NotFound();
+            }
             user.Name = updatedUser.Name;
             return Ok(user);
-        } catch (KeyNotFoundException) {
-            return BadRequest("This user does not exist.");
-        } catch (BadHttpRequestException ex) {
-            return BadRequest(ex.Message);
         }
-    }
 
-    [HttpDelete("{id}")]
-    public ActionResult Delete(int id) {
-        try {
-            var user = users.FirstOrDefault(i => i.Id == id) ?? throw new KeyNotFoundException("This user does not exist.");
+        [HttpDelete("{id}")]
+        public ActionResult DeleteUser(int id) {
+            var user = users.FirstOrDefault(i => i.Id == id);
+            if (user == null) {
+                return NotFound();
+            }
             users.Remove(user);
             return NoContent();
-        } catch (KeyNotFoundException ex) {
-            return BadRequest(ex.Message);
         }
     }
 }
